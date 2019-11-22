@@ -1,0 +1,18 @@
+version: "3.7"
+
+services:
+  collector:
+    image: gliderlabs/logspout
+    command: syslog+tls://logs4.papertrailapp.com:41995
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 24m
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:rw"

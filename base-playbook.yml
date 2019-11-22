@@ -1,0 +1,125 @@
+---
+- hosts: all
+  become: true
+
+  vars:
+    password: $1$Hullo$4PuMjZXpZtSXx/GDcVO9y0
+    ntp_timezone: Asia/Kolkata
+    resolv_search:
+      - cs.svu-ac.in
+    ssh_allow_groups: ssh-users
+    ssh_server_hardening: true
+    # ssh_print_motd: true
+    sftp_enabled: true
+
+  pre_tasks:
+    - name: ensure repositories
+      apt_repository:
+        repo: deb http://ftp.de.debian.org/debian/ stretch main universe multiverse backports
+        state: present
+    - name: ensure security repos
+      apt_repository:
+        repo: deb http://security.debian.org/debian-security stretch/updates main universe multiverse
+        state: present
+    - name: ensure update repos
+      apt_repository:
+        repo: deb http://ftp.de.debian.org/debian/ stretch-updates main universe multiverse backports
+        state: present
+    - name: install system updates for Debian
+      apt: upgrade=dist update_cache=yes
+      when: ansible_distribution == "Debian"
+    - name: install system updates for CentOS
+      yum: name=* state=latest update_cache=yes
+    - name: make sudo available
+      apt:
+        state: present
+        update_cache: yes
+        name:
+        - sudo
+        - htop
+        - vim
+        - locales-all
+      when: ansible_distribution == "Debian"
+    - name: make sudo available
+      yum:
+        state: present
+        update_cache: yes
+        name:
+        - sudo
+        - vim
+      when: ansible_distribution == "CentOS"
+    - name: make dbus available on Debian
+      apt: name=dbus state=present update_cache=yes
+      when: ansible_distribution == "Debian"
+
+  tasks:
+    - name: ensure hostname
+      hostname: name={{ inventory_hostname }}
+    - name: create ssh-users group
+      group: name=ssh-users state=present
+    - name: create sorend user
+      user:
+        name: sorend
+        password: "{{password}}"
+        shell: /bin/bash
+        groups:
+          - users
+          - ssh-users
+        append: yes
+        state: present
+    - name: allow sudo on Debian
+      user:
+        name: sorend
+        groups:
+          - sudo
+        append: yes
+      when: ansible_distribution == "Debian"
+    - name: allow sudo on CentOS
+      user:
+        name: sorend
+        groups:
+          - wheel
+        append: yes
+      when: ansible_distribution == "CentOS"
+    - name: copy sorend ssh keys
+      authorized_key:
+        user: sorend
+        key: https://github.com/sorend.keys
+        state: present
+    - name: ensure locale-gen
+      copy:
+        content: "en_DK.UTF-8 UTF-8\n"
+        dest: /etc/locale.gen
+    - name: ensure locale
+      locale_gen:
+        name: en_DK.UTF-8
+        state: present
+    - name: ensure motd
+      template:
+        src: templates/motd.j2
+        dest: /etc/motd
+    - name: sbin in path
+      copy:
+        src: files/sbin_path.sh
+        dest: /etc/profile.d/sbin_path.sh
+    - name: Allow 'sudo' group to have passwordless sudo
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: '^%sudo'
+        line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+        validate: 'visudo -cf %s'
+
+  roles:
+    - role: hudecof.resolv
+    - role: geerlingguy.ntp
+    - role: dev-sec.ssh-hardening
+    - role: Datadog.datadog
+      datadog_api_key: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          35386261306335653830316136623739376135303764366330653036633361306632663835396536
+          6362343135666466633034653833343632616535326333630a646139333566626437366664373731
+          64316665653831356339363933643139363031376166636466356132346139656536303639333538
+          3239343633333530660a656433336434323561396532333164323834393364343062346133393766
+          37636436326261376563623363333031383230366462333430316466343233663966636664616236
+          6232323738326266643732383264643261303266353639396562

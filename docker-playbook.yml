@@ -1,0 +1,119 @@
+---
+- hosts: all
+  become: true
+
+  vars:
+    docker_users:
+      - sorend
+      - dd-agent
+    skip_repo: true
+    skip_group: true
+    skip_docker_py: true
+    skip_engine: true
+    skip_swarm: false
+    traefik_stack: traefik
+    traefik_network: proxy-public
+    logspout_stack: logspout
+
+  pre_tasks:
+    - name: make basics available
+      apt:
+        name:
+        - sudo
+        - htop
+        - python3-pip
+        state: present
+    - name: Ensure python docker-py is not installed
+      pip:
+        name: docker-py
+        state: absent
+    - name: Ensure python docker library (used by ansible)
+      pip:
+        name:
+          - docker
+          - jsondiff
+          - pyyaml
+        state: present
+
+  roles:
+    - role: geerlingguy.docker
+    - role: atosatto.docker-swarm
+
+  post_tasks:
+    - name: ensure datadog agent docker config
+      copy:
+        src: /etc/datadog-agent/conf.d/docker.d/conf.yaml.example
+        dest: /etc/datadog-agent/conf.d/docker.d/conf.yaml
+        remote_src: yes
+    - name: restart datadog agent
+      service:
+        name: datadog-agent
+        state: restarted
+
+  tasks:
+
+    - name: Install traefik network
+      docker_network:
+        name: "{{ traefik_network }}"
+        attachable: true
+        scope: swarm
+        state: present
+      run_once: true
+
+    - name: Create a directory if it does not exist
+      file:
+        path: /etc/traefik
+        state: directory
+        mode: '0755'
+
+    - name: Update traefik files
+      copy:
+        src: ./files/traefik/
+        dest: /etc/traefik/
+      register: traefik_files
+
+    - name: Ensure traefik is redeployable
+      docker_stack:
+        state: absent
+        name: "{{ traefik_stack }}"
+        compose:
+          - /etc/traefik/stack.yml
+      run_once: true
+      when: "traefik_files.changed"
+
+    - name: Install traefik
+      docker_stack:
+        state: present
+        name: "{{ traefik_stack }}"
+        compose:
+          - /etc/traefik/stack.yml
+      run_once: true
+
+    - name: Create a directory if it does not exist
+      file:
+        path: /etc/logspout
+        state: directory
+        mode: '0755'
+
+    - name: Update logspout files
+      copy:
+        src: ./files/logspout/
+        dest: /etc/logspout/
+      register: logspout_files
+
+    - name: Ensure logspout is redeployable
+      docker_stack:
+        state: absent
+        name: "{{ logspout_stack }}"
+        compose:
+          - /etc/logspout/stack.yml
+      run_once: true
+      when: "logspout_files.changed"
+
+    - name: Install logspout
+      docker_stack:
+        state: present
+        name: "{{ logspout_stack }}"
+        compose:
+          - /etc/logspout/stack.yml
+      run_once: true

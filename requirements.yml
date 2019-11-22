@@ -1,0 +1,6 @@
+- src: geerlingguy.docker
+- src: atosatto.docker-swarm
+- src: hudecof.resolv
+- src: geerlingguy.ntp
+- src: dev-sec.ssh-hardening
+- src: Datadog.datadog
