@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+  nginx:
+    image: nginx:alpine
+    networks:
+      - proxy-public
+    volumes:
+      - "/home/sorend/public_html:/home/sorend/public_html:ro"
+    configs:
+      - source: svu_conf
+        target: /etc/nginx/conf.d/svu.conf
+        mode: 444
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.lbswarm=true"
+        - "traefik.http.routers.webserver.entrypoints=web,web-secure"
+        - "traefik.http.services.webserver.loadbalancer.server.port=80"
+        - "traefik.http.routers.webserver.rule=HostRegexp(`svu-ac.in`, `{subdomain:[a-z]+}.svu-ac.in`, `{subdomain:[a-z]+}.cs.svu-ac.in`)"
+        - "traefik.http.routers.webserver.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.webserver.tls.domains[0].main=venkatadri.cs.svu-ac.in"
+        - "traefik.http.routers.webserver.tls.domains[0].sans=www.cs.svu-ac.in,cs.svu-ac.in,svu-ac.in"
+        - "traefik.http.middlewares.webserver.compress=true"
+        - "traefik.http.middlewares.webserver.redirectscheme.scheme=https"
+      placement:
+        constraints:
+          - node.hostname == venkatadri
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 20m
+
+configs:
+  svu_conf:
+    file: ./svu.conf
+
+networks:
+  proxy-public:
+    external: true

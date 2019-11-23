@@ -55,6 +55,7 @@
     - name: Install traefik network
       docker_network:
         name: "{{ traefik_network }}"
+        driver: "overlay"
         attachable: true
         scope: swarm
         state: present

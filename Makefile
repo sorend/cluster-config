@@ -22,3 +22,6 @@ update:
 
 docker:
 	ansible-playbook -i hosts.docker -K docker-playbook.yml $(EXTRA_ARGS)
+
+webserver:
+	ansible-playbook -i hosts.docker -K webserver-playbook.yml -l venkatadri $(EXTRA_ARGS)

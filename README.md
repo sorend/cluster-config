@@ -40,6 +40,15 @@ make docker
 
 Again a become password is required.
 
+## webserver configuration
+
+The webserver lives on the venkatadri host. It is a nginx with specific user folders mounted
+in. Everything else redirects to the main website.
+
+``` bash
+make webserver
+```
+
 ## about
 
 This was originally made for the Dept of Comp. Sci. at [SVU](https://www.svuniversity.edu.in/), to maintain

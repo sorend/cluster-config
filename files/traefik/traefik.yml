@@ -1,8 +1,8 @@
 
 entryPoints:
-  http:
+  web:
     address: ":80"
-  http-secure:
+  web-secure:
     address: ":443"
 
 providers:
@@ -15,10 +15,12 @@ api:
   insecure: true
   dashboard: true
 
+ping: {}
+
 certificatesResolvers:
-  sample:
+  letsencrypt:
     acme:
       email: "sorend@gmail.com"
       storage: "/var/acme/acme.json"
       httpChallenge:
-        entrypoint: "http"
+        entrypoint: "web"
