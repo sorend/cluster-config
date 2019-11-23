@@ -3,7 +3,15 @@
   become: true
 
   vars:
-    password: $1$Hullo$4PuMjZXpZtSXx/GDcVO9y0
+    crypt_pass: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      37633631376632383239633366633530393731643034343437326137363032316534666430356361
+      3766326564383564376265383234646539343163653834640a316562396132613936346161346161
+      62393135323763393133306166326462353034323539663534393033326162363631396137623864
+      3733356466623738650a396561393439653434303538323061393565326537303462663139353737
+      66306333636466626233373735616631353139316131326638363435383861653230393530623831
+      3239636131306163616332633265343437663533383133633836
+    encrypted_pass: $1$Hullo$4PuMjZXpZtSXx/GDcVO9y0
     ntp_timezone: Asia/Kolkata
     resolv_search:
       - cs.svu-ac.in
@@ -11,6 +19,14 @@
     ssh_server_hardening: true
     # ssh_print_motd: true
     sftp_enabled: true
+    datadog_api_key: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      35386261306335653830316136623739376135303764366330653036633361306632663835396536
+      6362343135666466633034653833343632616535326333630a646139333566626437366664373731
+      64316665653831356339363933643139363031376166636466356132346139656536303639333538
+      3239343633333530660a656433336434323561396532333164323834393364343062346133393766
+      37636436326261376563623363333031383230366462333430316466343233663966636664616236
+      6232323738326266643732383264643261303266353639396562
 
   pre_tasks:
     - name: ensure repositories
@@ -28,8 +44,6 @@
     - name: install system updates for Debian
       apt: upgrade=dist update_cache=yes
       when: ansible_distribution == "Debian"
-    - name: install system updates for CentOS
-      yum: name=* state=latest update_cache=yes
     - name: make sudo available
       apt:
         state: present
@@ -39,18 +53,8 @@
         - htop
         - vim
         - locales-all
-      when: ansible_distribution == "Debian"
-    - name: make sudo available
-      yum:
-        state: present
-        update_cache: yes
-        name:
-        - sudo
-        - vim
-      when: ansible_distribution == "CentOS"
     - name: make dbus available on Debian
       apt: name=dbus state=present update_cache=yes
-      when: ansible_distribution == "Debian"
 
   tasks:
     - name: ensure hostname
@@ -60,7 +64,7 @@
     - name: create sorend user
       user:
         name: sorend
-        password: "{{password}}"
+        password: "{{crypt_pass}}"
         shell: /bin/bash
         groups:
           - users
@@ -73,14 +77,6 @@
         groups:
           - sudo
         append: yes
-      when: ansible_distribution == "Debian"
-    - name: allow sudo on CentOS
-      user:
-        name: sorend
-        groups:
-          - wheel
-        append: yes
-      when: ansible_distribution == "CentOS"
     - name: copy sorend ssh keys
       authorized_key:
         user: sorend
@@ -115,11 +111,3 @@
     - role: geerlingguy.ntp
     - role: dev-sec.ssh-hardening
     - role: Datadog.datadog
-      datadog_api_key: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          35386261306335653830316136623739376135303764366330653036633361306632663835396536
-          6362343135666466633034653833343632616535326333630a646139333566626437366664373731
-          64316665653831356339363933643139363031376166636466356132346139656536303639333538
-          3239343633333530660a656433336434323561396532333164323834393364343062346133393766
-          37636436326261376563623363333031383230366462333430316466343233663966636664616236
-          6232323738326266643732383264643261303266353639396562
