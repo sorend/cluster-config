@@ -15,14 +15,16 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.lbswarm=true"
-        - "traefik.http.routers.webserver.entrypoints=web,web-secure"
+        - "traefik.http.routers.webserver.entrypoints=web-secure"
         - "traefik.http.services.webserver.loadbalancer.server.port=80"
         - "traefik.http.routers.webserver.rule=HostRegexp(`svu-ac.in`, `{subdomain:[a-z]+}.svu-ac.in`, `{subdomain:[a-z]+}.cs.svu-ac.in`)"
         - "traefik.http.routers.webserver.tls.certresolver=letsencrypt"
         - "traefik.http.routers.webserver.tls.domains[0].main=venkatadri.cs.svu-ac.in"
-        - "traefik.http.routers.webserver.tls.domains[0].sans=www.cs.svu-ac.in,cs.svu-ac.in,svu-ac.in"
-        - "traefik.http.middlewares.webserver.compress=true"
-        - "traefik.http.middlewares.webserver.redirectscheme.scheme=https"
+        - "traefik.http.routers.webserver.tls.domains[0].sans=www.cs.svu-ac.in,cs.svu-ac.in,www.svu-ac.in,svu-ac.in"
+        - "traefik.http.routers.webserver_insecure.entrypoints=web"
+        - "traefik.http.routers.webserver_insecure.rule=HostRegexp(`svu-ac.in`, `{subdomain:[a-z]+}.svu-ac.in`, `{subdomain:[a-z]+}.cs.svu-ac.in`)"
+        - "traefik.http.routers.webserver_insecure.middlewares=https-redirect"
+        - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
       placement:
         constraints:
           - node.hostname == venkatadri
