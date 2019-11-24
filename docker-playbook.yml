@@ -52,6 +52,14 @@
 
   tasks:
 
+    - name: Docker system prune daily
+      cron:
+        name: docker system prune
+        special_time: "weekly"
+        user: root
+        job: "docker system prune -a -f"
+        cron_file: docker-system-prune-weekly
+
     - name: Install traefik network
       docker_network:
         name: "{{ traefik_network }}"
