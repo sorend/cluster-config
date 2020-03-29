@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+data:
+  svu.conf: |
+    server {
+      listen 80 default_server;
+      server_name venkatadri.cs.svu-ac.in vrushabadri.cs.svu-ac.in cs.svu-ac.in *.cs.svu-ac.in *.svu-ac.in svu-ac.in;
+      location ~ ^/~([a-zA-Z0-9]+?)(/.*)?$ {
+        autoindex on;
+        index index.html;
+        alias /home/$1/public_html$2;
+      }
+      location / {
+        return 302 https://svuniversity.edu.in/;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deployment
+  labels:
+    app: web-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-server
+  template:
+    metadata:
+      labels:
+        app: web-server
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/nginx/conf.d
+            readOnly: true
+          - name: files-volume
+            mountPath: /home/sorend/public_html
+            readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: web-config
+        - name: files-volume
+          hostPath:
+            path: /home/sorend/public_html
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+  labels:
+    app: web-server
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: web-server
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: web-ingress
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: venkatadri.cs.svu-ac.in
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web-service
+          servicePort: 80
+  - host: www.cs.svu-ac.in
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web-service
+          servicePort: 80
+  - host: cs.svu-ac.in
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web-service
+          servicePort: 80
+  - host: www.svu-ac.in
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web-service
+          servicePort: 80
+  - host: svu-ac.in
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web-service
+          servicePort: 80
