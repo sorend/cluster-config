@@ -17,6 +17,8 @@
     ssh_server_hardening: true
     # ssh_print_motd: true
     sftp_enabled: true
+    ssh_permit_tunnel: true
+    ssh_allow_tcp_forwarding: yes
     datadog_api_key: !vault |
       $ANSIBLE_VAULT;1.1;AES256
       35386261306335653830316136623739376135303764366330653036633361306632663835396536
@@ -25,6 +27,7 @@
       3239343633333530660a656433336434323561396532333164323834393364343062346133393766
       37636436326261376563623363333031383230366462333430316466343233663966636664616236
       6232323738326266643732383264643261303266353639396562
+    nfs_path: /export
 
   pre_tasks:
     - name: ensure repositories
@@ -51,6 +54,7 @@
         - htop
         - vim
         - locales-all
+        - nfs-common
     - name: make dbus available on Debian
       apt: name=dbus state=present update_cache=yes
 
@@ -103,6 +107,10 @@
         regexp: '^%sudo'
         line: '%sudo ALL=(ALL) NOPASSWD: ALL'
         validate: 'visudo -cf %s'
+    - name: Ensure nfs folder
+      file:
+        path: /export
+        state: directory 
 
   roles:
     - role: hudecof.resolv
