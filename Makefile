@@ -20,8 +20,3 @@ first_as_root:
 update:
 	ansible-playbook -i hosts --ask-vault-pass -K base-playbook.yml $(EXTRA_ARGS)
 
-docker:
-	ansible-playbook -i hosts.docker -K docker-playbook.yml $(EXTRA_ARGS)
-
-webserver:
-	ansible-playbook -i hosts.docker -K webserver-playbook.yml -l venkatadri $(EXTRA_ARGS)
